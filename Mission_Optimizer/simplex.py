@@ -31,59 +31,83 @@ class Simplex:
         """
         :return: Optimal solution of given problem.
         """
-        x = np.zeros(len(self.c))
-        B, N, cb, cn, indexes = self.__find_basis__()
+        B, N, cb, cn, indexes_b, indexes_n = self.__find_basis__()
         xb = np.dot(np.linalg.inv(B), self.b)
-        for i in indexes.keys():
-            x[indexes[i]] = xb[i]
-        l = np.dot(np.linalg.inv(np.transpose(B)), cb)
-        sn = cn - np.dot(np.transpose(N), l)
-        q = 0
-        while np.sum(sn) < 0:
-            if not self.c[q] < 0:
-                q += 1
-                continue
+        y = np.dot(np.linalg.inv(np.transpose(B)), cb)
 
-            d = np.dot(np.linalg.inv(B), N[:, q])
+        rc = np.transpose(cn) - np.dot(np.transpose(y), N)
+        q = indexes_n[int(np.argmin(rc))]
+        d = np.dot(np.linalg.inv(B), self.A[:, q])
+
+        if np.sum(d) <= 0:
+            print("Unbounded problem.")
+            return []
+        min_tmp = np.finfo(xb[0].dtype).max
+        p = -1
+        for i in range(len(xb)):
+            if d[i] > 0 and xb[i]/d[i] < min_tmp:
+                min_tmp = xb[i]/d[i]
+                p = i
+
+        tmp = copy.deepcopy(B[:, :])
+        tmp[:, p] = self.A[:, q]
+        N[:, indexes_n[q]] = B[:, p]
+        B = tmp[:, :]
+        tmp = indexes_b[p]
+        indexes_b[p] = q
+        indexes_n[q] = tmp
+        cb = self.c[[i for i in indexes_b.values()]]
+        cn = self.c[[j not in [i for i in indexes_b.values()] for j in range(len(self.c))]]
+        xb -= min_tmp*d
+        xb[p] = min_tmp
+        y = np.dot(np.linalg.inv(np.transpose(B)), cb)
+        rc = np.transpose(cn) - np.dot(np.transpose(y), N)
+
+        while len(rc[rc >= 0]) < len(rc):
+
+            q = indexes_n[int(np.argmin(rc))]
+            d = np.dot(np.linalg.inv(B), self.A[:, q])
+
             if np.sum(d) <= 0:
                 print("Unbounded problem.")
                 return []
 
-            db = np.dot(np.linalg.inv(B), N[:, q])*x[q]
-            xb = xb - db
-            while not np.min(xb) <= 0:
-                x[q] += 1
-                db = np.dot(np.linalg.inv(B), N[:, q])*x[q]
-                xb = xb - db
+            min_tmp = np.finfo(xb[0].dtype).max
+            p = -1
+            for i in range(len(xb)):
+                if d[i] > 0 and xb[i]/d[i] < min_tmp:
+                    min_tmp = xb[i]/d[i]
+                    p = i
 
-            p = int(np.argmin(xb))
-            for i in indexes.keys():
-                x[indexes[i]] = xb[i]
             tmp = copy.deepcopy(B[:, :])
-            tmp[:, p] = N[:, q]
-            N[:, q] = B[:, p]
+            tmp[:, p] = self.A[:, q]
+            N[:, indexes_n[q]] = B[:, p]
             B = tmp[:, :]
-            indexes[p] = q
-            cb = self.c[[i for i in indexes.values()]]
-            cn = self.c[[j not in [i for i in indexes.values()] for j in range(len(self.c))]]
+            indexes_b[p] = q
+            cb = self.c[[i for i in indexes_b.values()]]
+            cn = self.c[[j not in [i for i in indexes_b.values()] for j in range(len(self.c))]]
+            xb -= min_tmp*d
+            xb[p] = min_tmp
+            y = np.dot(np.linalg.inv(np.transpose(B)), cb)
+            rc = np.transpose(cn) - np.dot(np.transpose(y), N)
 
-            xb = np.dot(np.linalg.inv(B), self.b)
-            l = np.dot(np.linalg.inv(np.transpose(B)), cb)
-            sn = cn - np.dot(np.transpose(N), l)
-
-            q += 1
-
+        x = np.zeros(len(self.c))
+        for i in range(len(xb)):
+            x[indexes_b[i]] = xb[i]
         return list(x)
 
     def __find_basis__(self):
         """
-        Finds a basis B for matrix A and returns matrix N and vectors cb, cn and dictionary of indexes taken.
+        Finds a basis B for matrix A and returns matrix N and vectors cb, cn and dictionary of indexesB taken.
         """
         B = self.A[:, -len(self.A):]
         N = self.A[:, :-len(self.A)]
         cb = self.c[-len(self.A):]
         cn = self.c[:-len(self.A)]
-        indexes = dict()
+        indexes_b = dict()
+        indexes_n = dict()
         for i in range(len(self.A)):
-            indexes[i] = len(self.A[0]) - len(self.A) + i
-        return B, N, cb, cn, indexes
+            indexes_b[i] = len(self.A[0]) - len(self.A) + i
+        for i in range(len(self.A[0])-len(self.A)):
+            indexes_n[i] = i
+        return B, N, cb, cn, indexes_b, indexes_n
