@@ -1,5 +1,5 @@
 """
-Implementation of the revised simplex algorithm in python3.
+Implementation of the revised simplex algorithm in python3.8.
 
 Author: Carlo Cena
 """
@@ -34,6 +34,8 @@ class Simplex:
         x = np.zeros(len(self.c))
         B, N, cb, cn, indexes = self.__find_basis__()
         xb = np.dot(np.linalg.inv(B), self.b)
+        for i in indexes.keys():
+            x[indexes[i]] = xb[i]
         l = np.dot(np.linalg.inv(np.transpose(B)), cb)
         sn = cn - np.dot(np.transpose(N), l)
         q = 0
@@ -46,19 +48,24 @@ class Simplex:
             if np.sum(d) <= 0:
                 print("Unbounded problem.")
                 return []
+
             db = np.dot(np.linalg.inv(B), N[:, q])*x[q]
-            while not np.min(xb - db) <= 0:
+            xb = xb - db
+            while not np.min(xb) <= 0:
                 x[q] += 1
                 db = np.dot(np.linalg.inv(B), N[:, q])*x[q]
+                xb = xb - db
 
-            p = int(np.argmin(xb - db))
+            p = int(np.argmin(xb))
+            for i in indexes.keys():
+                x[indexes[i]] = xb[i]
             tmp = copy.deepcopy(B[:, :])
             tmp[:, p] = N[:, q]
             N[:, q] = B[:, p]
             B = tmp[:, :]
             indexes[p] = q
-            cb = self.c[[x for x in indexes.values()]]
-            cn = self.c[[y not in [x for x in indexes.values()] for y in range(len(self.c))]]
+            cb = self.c[[i for i in indexes.values()]]
+            cn = self.c[[j not in [i for i in indexes.values()] for j in range(len(self.c))]]
 
             xb = np.dot(np.linalg.inv(B), self.b)
             l = np.dot(np.linalg.inv(np.transpose(B)), cb)
