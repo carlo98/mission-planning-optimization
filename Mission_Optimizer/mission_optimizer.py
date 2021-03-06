@@ -5,6 +5,7 @@ minimizing the costs required and staying below the maximum time and energy avai
 Author: Carlo Cena
 """
 from typing import List
+import itertools
 import numpy as np
 from Mission_Optimizer.simplex import Simplex
 
@@ -47,8 +48,7 @@ class MissionPlanOptimizer:
         :return result is a dictionary with the best solution and its value, if no solution exists result is None.
         """
         solver = Simplex(list(self.A), list(self.c), list(self.b))
-        solution = solver.run()
-        print(solution)
+        print(solver.run())
 
     def extract_path(self, result):
         """
@@ -84,7 +84,6 @@ class MissionPlanOptimizer:
             for j in range(self.N):
                 if i != j:  # We don't want loops
                     self.c[i][j] = self.Costs[i][j] - self.R[i] * (1 - self.D[i])
-        print(self.c)
         self.c = self.c.flatten()
 
     def __create_A_b__(self):
@@ -108,11 +107,6 @@ class MissionPlanOptimizer:
 
         self.A.append(list(self.E.flatten()))  # (2)
         self.b.append(self.max_e)
-
-        self.A.append(list(np.zeros(len(self.c))))  # (3.1)
-        self.b.append(1.)
-        for i in range(len(self.R)):
-            self.A[-1][i * len(self.R)] = 1.
 
         self.A.append(list(np.zeros(len(self.c))))  # (3.2)
         self.b.append(1.)
@@ -141,17 +135,27 @@ class MissionPlanOptimizer:
             for j in range(len(self.R)):
                 self.A[-1][i + j * len(self.R)] = 1.
 
-        last_no_connectivity = len(self.A)
+        combs = self.__create_combinations__()  # (8.1)
+        for comb in combs:
+            self.A.append(list(np.zeros(len(self.c))))
+            self.b.append(len(comb)-1)
+            for goal in comb:
+                for j in range(len(self.R)):
+                    if j in comb and j != goal:
+                        self.A[-1][goal * len(self.R) + j] = 1
 
-        # TODO: Connectivity constraints
+        for i in range(1, len(self.R)):  # (8.2)
+            self.A.append(list(np.zeros(len(self.c))))
+            self.b.append(1.)
+            for j in range(len(self.R)):
+                self.A[-1][i * len(self.R) + j] = -1.
+            for j in range(len(self.R)):
+                self.A[-1][i + j * len(self.R)] = 2.
 
         for i in range(len(self.A)):  # Adding slack variables
             for j in range(len(self.A)):
                 if i == j:
-                    if i > last_no_connectivity or i == 2:
-                        self.A[i].append(-1.)
-                    else:
-                        self.A[i].append(1.)
+                    self.A[i].append(1.)
                 else:
                     self.A[i].append(0.)
 
@@ -159,3 +163,14 @@ class MissionPlanOptimizer:
 
         self.b = np.array(self.b)
         self.A = np.array(self.A)
+
+    def __create_combinations__(self) -> List:
+        """
+        Creates all possible combinations of goals 1..n-1
+        @:return List of tuples, where each tuple is a combination of goals
+        """
+        combs = []
+        goals = list(range(1, len(self.R)))
+        for i in range(2, len(self.R)):
+            combs += ([x for x in itertools.combinations(goals, i)])
+        return combs
