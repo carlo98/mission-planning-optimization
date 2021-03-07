@@ -45,10 +45,14 @@ class MissionPlanOptimizer:
         """
         Uses branch and bound and simplex class to get optimal solution of
         constrained optimization problem.
-        :return result is a dictionary with the best solution and its value, if no solution exists result is None.
+        :return Dictionary with the best solution and its value, if no solution exists result["solution"] is None.
         """
         solver = Simplex(list(self.A), list(self.c), list(self.b))
-        print(solver.run())
+        solution = solver.run()
+        if len(solution) == 0:
+            return {"solution": None, "value": 1}
+        value = np.dot(self.c[:self.N*self.N], solution[:self.N*self.N])
+        return {"solution": solution[:self.N*self.N], "value": value}
 
     def extract_path(self, result):
         """
@@ -56,7 +60,7 @@ class MissionPlanOptimizer:
         :return Optimum path, list.
         """
         assert (result is not None), "Solution should not be None!"
-        goal_matrix = result["G"]
+        goal_matrix = np.reshape(result["solution"], (self.N, self.N))
         optimum_path = [0]
         flag = True
         while flag:

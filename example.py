@@ -16,11 +16,17 @@ Energy = [[0, 1, 1],
 Changes = [[0, 1, 1],
            [1, 0, 6],
            [5, 4, 0]]
-Rewards = [0, 6, 5]
+Rewards = [0, 6, 8]
 Difficulties = [0, 0, 0]
 max_t = 20
 max_e = 90
 
 optim = MissionPlanOptimizer(Time, Energy, Changes, Rewards, Difficulties, max_t, max_e)
-
 result = optim.run()
+
+if result["solution"] is None:
+    print("No solution found.")
+else:
+    path = optim.extract_path(result)
+    print("Solution found: ", path)
+    print("Value of solution: ", result["value"])

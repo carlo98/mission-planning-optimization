@@ -32,12 +32,13 @@ class Simplex:
         :return: Optimal solution of given problem.
         """
         B, N, cb, cn, indexes_b, indexes_n = self.__find_basis__()
+
         xb = np.dot(np.linalg.inv(B), self.b)
         y = np.dot(np.linalg.inv(np.transpose(B)), cb)
 
         rc = np.transpose(cn) - np.dot(np.transpose(y), N)
-        q = indexes_n[int(np.argmin(rc))]
-        d = np.dot(np.linalg.inv(B), self.A[:, q])
+        q = int(np.argmin(rc))
+        d = np.dot(np.linalg.inv(B), self.A[:, indexes_n[q]])
 
         if np.sum(d) <= 0:
             print("Unbounded problem.")
@@ -49,15 +50,13 @@ class Simplex:
                 min_tmp = xb[i]/d[i]
                 p = i
 
-        tmp = copy.deepcopy(B[:, :])
-        tmp[:, p] = self.A[:, q]
-        N[:, indexes_n[q]] = B[:, p]
-        B = tmp[:, :]
+        N[:, q] = copy.deepcopy(B[:, p])
+        B[:, p] = self.A[:, indexes_n[q]]
         tmp = indexes_b[p]
-        indexes_b[p] = q
+        indexes_b[p] = indexes_n[q]
         indexes_n[q] = tmp
         cb = self.c[[i for i in indexes_b.values()]]
-        cn = self.c[[j not in [i for i in indexes_b.values()] for j in range(len(self.c))]]
+        cn = self.c[[i for i in indexes_n.values()]]
         xb -= min_tmp*d
         xb[p] = min_tmp
         y = np.dot(np.linalg.inv(np.transpose(B)), cb)
@@ -65,13 +64,13 @@ class Simplex:
 
         while len(rc[rc >= 0]) < len(rc):
 
-            q = indexes_n[int(np.argmin(rc))]
-            d = np.dot(np.linalg.inv(B), self.A[:, q])
+            xb = np.dot(np.linalg.inv(B), self.b)
+            q = int(np.argmin(rc))
+            d = np.dot(np.linalg.inv(B), self.A[:, indexes_n[q]])
 
             if np.sum(d) <= 0:
                 print("Unbounded problem.")
                 return []
-
             min_tmp = np.finfo(xb[0].dtype).max
             p = -1
             for i in range(len(xb)):
@@ -79,13 +78,13 @@ class Simplex:
                     min_tmp = xb[i]/d[i]
                     p = i
 
-            tmp = copy.deepcopy(B[:, :])
-            tmp[:, p] = self.A[:, q]
-            N[:, indexes_n[q]] = B[:, p]
-            B = tmp[:, :]
-            indexes_b[p] = q
+            N[:, q] = copy.deepcopy(B[:, p])
+            B[:, p] = self.A[:, indexes_n[q]]
+            tmp = indexes_b[p]
+            indexes_b[p] = indexes_n[q]
+            indexes_n[q] = tmp
             cb = self.c[[i for i in indexes_b.values()]]
-            cn = self.c[[j not in [i for i in indexes_b.values()] for j in range(len(self.c))]]
+            cn = self.c[[i for i in indexes_n.values()]]
             xb -= min_tmp*d
             xb[p] = min_tmp
             y = np.dot(np.linalg.inv(np.transpose(B)), cb)
@@ -100,10 +99,10 @@ class Simplex:
         """
         Finds a basis B for matrix A and returns matrix N and vectors cb, cn and dictionary of indexesB taken.
         """
-        B = self.A[:, -len(self.A):]
-        N = self.A[:, :-len(self.A)]
-        cb = self.c[-len(self.A):]
-        cn = self.c[:-len(self.A)]
+        B = copy.deepcopy(self.A[:, -len(self.A):])
+        N = copy.deepcopy(self.A[:, :-len(self.A)])
+        cb = copy.deepcopy(self.c[-len(self.A):])
+        cn = copy.deepcopy(self.c[:-len(self.A)])
         indexes_b = dict()
         indexes_n = dict()
         for i in range(len(self.A)):
