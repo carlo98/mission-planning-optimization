@@ -54,13 +54,13 @@ class MissionPlanOptimizer:
         value = np.dot(self.c[:self.N*self.N], solution[:self.N*self.N])
         return {"solution": solution[:self.N*self.N], "value": value}
 
-    def extract_path(self, result):
+    def extract_path(self, solution):
         """
-        :param result: Result obtained from MissionPlanOptimizer.run, it should not be None.
+        :param solution: Result obtained from MissionPlanOptimizer.run, it should not be None.
         :return Optimum path, list.
         """
-        assert (result is not None), "Solution should not be None!"
-        goal_matrix = np.reshape(result["solution"], (self.N, self.N))
+        assert (solution is not None), "Solution should not be None!"
+        goal_matrix = np.reshape(solution, (self.N, self.N))
         optimum_path = [0]
         flag = True
         while flag:

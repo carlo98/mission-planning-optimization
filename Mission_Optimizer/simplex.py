@@ -32,45 +32,25 @@ class Simplex:
         :return: Optimal solution of given problem.
         """
         B, N, cb, cn, indexes_b, indexes_n = self.__find_basis__()
+        flag = True
+        xb = None
+        while flag:
+            inv_b = np.linalg.inv(B)
+            xb = np.dot(inv_b, self.b)
+            y = np.dot(np.transpose(inv_b), cb)
 
-        xb = np.dot(np.linalg.inv(B), self.b)
-        y = np.dot(np.linalg.inv(np.transpose(B)), cb)
+            rc = np.transpose(cn) - np.dot(np.transpose(y), N)
 
-        rc = np.transpose(cn) - np.dot(np.transpose(y), N)
-        q = int(np.argmin(rc))
-        d = np.dot(np.linalg.inv(B), self.A[:, indexes_n[q]])
+            if len(rc[rc >= 0]) == len(rc):  # Optimum has been found
+                flag = False
+                continue
 
-        if np.sum(d) <= 0:
-            print("Unbounded problem.")
-            return []
-        min_tmp = np.finfo(xb[0].dtype).max
-        p = -1
-        for i in range(len(xb)):
-            if d[i] > 0 and xb[i]/d[i] < min_tmp:
-                min_tmp = xb[i]/d[i]
-                p = i
-
-        N[:, q] = copy.deepcopy(B[:, p])
-        B[:, p] = self.A[:, indexes_n[q]]
-        tmp = indexes_b[p]
-        indexes_b[p] = indexes_n[q]
-        indexes_n[q] = tmp
-        cb = self.c[[i for i in indexes_b.values()]]
-        cn = self.c[[i for i in indexes_n.values()]]
-        xb -= min_tmp*d
-        xb[p] = min_tmp
-        y = np.dot(np.linalg.inv(np.transpose(B)), cb)
-        rc = np.transpose(cn) - np.dot(np.transpose(y), N)
-
-        while len(rc[rc >= 0]) < len(rc):
-
-            xb = np.dot(np.linalg.inv(B), self.b)
             q = int(np.argmin(rc))
-            d = np.dot(np.linalg.inv(B), self.A[:, indexes_n[q]])
+            d = np.dot(inv_b, self.A[:, indexes_n[q]])
 
-            if np.sum(d) <= 0:
-                print("Unbounded problem.")
+            if np.sum(d) <= 0:  # Unbounded problem
                 return []
+
             min_tmp = np.finfo(xb[0].dtype).max
             p = -1
             for i in range(len(xb)):
@@ -87,8 +67,6 @@ class Simplex:
             cn = self.c[[i for i in indexes_n.values()]]
             xb -= min_tmp*d
             xb[p] = min_tmp
-            y = np.dot(np.linalg.inv(np.transpose(B)), cb)
-            rc = np.transpose(cn) - np.dot(np.transpose(y), N)
 
         x = np.zeros(len(self.c))
         for i in range(len(xb)):

@@ -16,7 +16,7 @@ Energy = [[0, 1, 1],
 Changes = [[0, 1, 1],
            [1, 0, 6],
            [5, 4, 0]]
-Rewards = [0, 6, 8]
+Rewards = [0, 6, 2]
 Difficulties = [0, 0, 0]
 max_t = 20
 max_e = 90
@@ -27,6 +27,6 @@ result = optim.run()
 if result["solution"] is None:
     print("No solution found.")
 else:
-    path = optim.extract_path(result)
+    path = optim.extract_path(result["solution"])
     print("Solution found: ", path)
     print("Value of solution: ", result["value"])
