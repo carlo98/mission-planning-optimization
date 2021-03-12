@@ -1,5 +1,5 @@
 # Mission Planning Optimization
-Problem similar to prize-collecting TSP solved with implementation of branch &amp; bound and simplex algorithm
+Problem similar to prize-collecting TSP solved with implementation of branch &amp; bound and revised simplex algorithm
 as a project for the course of Combinatorial Decision Making and Optimization (Master's degree in AI) of University of Bologna.
 
 Tested on python3.8.

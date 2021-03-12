@@ -6,7 +6,6 @@ Author: Carlo Cena
 from typing import List
 import numpy as np
 import copy
-from scipy.linalg import lu_factor
 
 
 class Simplex:
@@ -24,15 +23,15 @@ class Simplex:
         if not isinstance(a, List) or not isinstance(c, List) or not isinstance(b, List):
             print("Check inputs' type.")
             raise TypeError
-        self.A = np.array(a)
-        self.c = np.array(c)
-        self.b = np.array(b)
+        self.A = np.array(a, dtype=np.float64)
+        self.c = np.array(c, dtype=np.float64)
+        self.b = np.array(b, dtype=np.float64)
 
     def run(self) -> List[float]:
         """
         :return: Optimal solution of given problem.
         """
-        B, N, cb, cn, indexes_b, indexes_n = self.__find_basis__()
+        matrix_b, matrix_n, cb, cn, indexes_b, indexes_n = self.__find_basis__()
         flag = True
         E = []
         xb = self.b
@@ -41,7 +40,7 @@ class Simplex:
             for g, r in E:  # BTRAN process
                 w[r] = np.dot(w, g)
 
-            rc = np.transpose(cn) - np.dot(np.transpose(w), N)
+            rc = np.transpose(cn) - np.dot(np.transpose(w), matrix_n)
             if len(rc[rc >= 0]) == len(rc):  # Optimum has been found
                 flag = False
                 continue
@@ -68,8 +67,8 @@ class Simplex:
             new_column[r] = 1/y[r]
             E.insert(0, (new_column, r))
 
-            N[:, k] = copy.deepcopy(B[:, r])
-            B[:, r] = self.A[:, indexes_n[k]]
+            matrix_n[:, k] = copy.deepcopy(matrix_b[:, r])
+            matrix_b[:, r] = self.A[:, indexes_n[k]]
             tmp = indexes_b[r]
             indexes_b[r] = indexes_n[k]
             indexes_n[k] = tmp
@@ -90,8 +89,8 @@ class Simplex:
         """
         Finds a basis B for matrix A and returns matrix N and vectors cb, cn and dictionary of indexesB taken.
         """
-        B = copy.deepcopy(self.A[:, -len(self.A):])
-        N = copy.deepcopy(self.A[:, :-len(self.A)])
+        matrix_b = copy.deepcopy(self.A[:, -len(self.A):])
+        matrix_n = copy.deepcopy(self.A[:, :-len(self.A)])
         cb = copy.deepcopy(self.c[-len(self.A):])
         cn = copy.deepcopy(self.c[:-len(self.A)])
         indexes_b = dict()
@@ -100,4 +99,4 @@ class Simplex:
             indexes_b[i] = len(self.A[0]) - len(self.A) + i
         for i in range(len(self.A[0])-len(self.A)):
             indexes_n[i] = i
-        return B, N, cb, cn, indexes_b, indexes_n
+        return matrix_b, matrix_n, cb, cn, indexes_b, indexes_n

@@ -4,13 +4,11 @@ minimizing the costs required and staying below the maximum time and energy avai
 
 Author: Carlo Cena
 """
-import math
 from typing import List
 import itertools
 import copy
 import numpy as np
 from Mission_Optimizer.simplex import Simplex
-from scipy.optimize import linprog
 
 
 class MissionPlanOptimizer:
@@ -67,12 +65,16 @@ class MissionPlanOptimizer:
 
     def run_rec(self, best_sol, best_val_sol, curr_a, curr_b, curr_c):
         """
-
+        Recursive method used for branch and bound.
+        :param best_sol: Best solution found so far
+        :param best_val_sol: Best solution's value
+        :param curr_a: current matrix of constraints
+        :param curr_b: current RHS values
+        :param curr_c: current costs
+        :return value_sol, sol: value of best solution found and solution
         """
         solver = Simplex(curr_a, curr_c, curr_b)
         solution = solver.run()
-        #solution = linprog(curr_c, curr_a, curr_b, method="revised simplex")
-        #solution = solution['x']
 
         if len(solution) == 0:
             return 1, []
@@ -221,7 +223,7 @@ class MissionPlanOptimizer:
                     self.A[i].append(0.)
 
         self.c = self.c + list(np.zeros(len(self.A[0]) - len(self.c)))
-        self.c[self.N*self.N + 2] = 100
+        self.c[self.N*self.N + 2] = np.finfo(np.float64).max
 
     def __create_combinations__(self) -> List:
         """
@@ -244,18 +246,7 @@ class MissionPlanOptimizer:
         new_a = np.array(curr_a)
         new_c = copy.deepcopy(curr_c)
 
-        """
-        if zero_or_one == 1:
-            new_b[0] -= (self.T.flatten())[i]
-            new_b[1] -= (self.E.flatten())[i]
-            for j in range(2, len(new_b)):
-                if new_a[j][i] != 0 and j != 4+i:
-                    new_b[j] -= new_a[j][i]
-                    if new_b[j] < 0:
-                        new_b[j] = -new_b[j]
-                        new_a[j] = -new_a[j]ì
-        """
-        new_c[self.N*self.N+4+i] = 100
+        new_c[self.N*self.N+4+i] = np.finfo(np.float64).max
         new_b[4+i] = zero_or_one
 
         return list(new_a), new_b, new_c

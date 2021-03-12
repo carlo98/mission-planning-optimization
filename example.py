@@ -5,6 +5,7 @@ This module mimics the behavior of a client of the Mission_Optimizer (Integer Pr
 Here is defined the method which receives the elaborated information on the known map and outputs the optimal sequence of goal to visit,
 in order to maximise the prize and minimize the number of changes of direction.
 """
+import time
 from Mission_Optimizer.mission_optimizer import MissionPlanOptimizer
 
 Time = [[0, 5, 10, 10, 7],
@@ -27,15 +28,14 @@ Difficulties = [0, 0.5, 0.5, 0.5, 0.5]
 max_t = 20
 max_e = 90
 
-optim = MissionPlanOptimizer(Time, Energy, Changes, Rewards, Difficulties, max_t, max_e)
-import time
+optimizer1 = MissionPlanOptimizer(Time, Energy, Changes, Rewards, Difficulties, max_t, max_e)
 start_time = time.time()
-result = optim.run()
+result = optimizer1.run()
 print("Total time, my version: ", time.time()-start_time)
 
 if result["solution"] is None:
     print("No solution found.")
 else:
-    path = optim.extract_path(result["solution"])
+    path = optimizer1.extract_path(result["solution"])
     print("Solution found: ", path)
     print("Value of solution: ", result["value"])
