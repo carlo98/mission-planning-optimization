@@ -79,45 +79,6 @@ class Simplex:
             a = copy.deepcopy(xb)
             a[E[0][1]] = 0
             xb = a + xb[E[0][1]]*E[0][0]  # Update solution
-            """
-            lu, piv = lu_factor(B)
-            w, _ = np.linalg.eig(B)
-            print(np.max(w)/np.min(w))
-            L, U = np.tril(lu, k=-1) + np.eye(len(B)), np.triu(lu)
-
-            y = np.dot(cb, np.linalg.inv(B))
-
-            rc = np.transpose(cn) - np.dot(np.transpose(y), N)
-
-            if len(rc[rc >= 0]) == len(rc):  # Optimum has been found
-                flag = False
-                continue
-
-            xb = np.linalg.solve(np.dot(L, U), self.b)
-
-            q = int(np.argmin(rc))
-            d = np.linalg.solve(np.dot(L, U), self.A[:, indexes_n[q]])
-
-            if len(d[d <= 0]) == len(d):  # Unbounded problem
-                return []
-
-            min_tmp = np.finfo(xb[0].dtype).max
-            p = -1
-            for i in range(len(xb)):
-                if d[i] > 0 and xb[i]/d[i] < min_tmp:
-                    min_tmp = xb[i]/d[i]
-                    p = i
-
-            N[:, q] = copy.deepcopy(B[:, p])
-            B[:, p] = self.A[:, indexes_n[q]]
-            tmp = indexes_b[p]
-            indexes_b[p] = indexes_n[q]
-            indexes_n[q] = tmp
-            cb = self.c[[i for i in indexes_b.values()]]
-            cn = self.c[[i for i in indexes_n.values()]]
-            xb -= min_tmp*d
-            xb[p] = min_tmp
-            """
 
         x = np.zeros(len(self.c))
         for i in range(len(xb)):
