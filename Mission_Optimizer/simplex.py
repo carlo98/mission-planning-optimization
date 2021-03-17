@@ -35,6 +35,7 @@ class Simplex:
         flag = True
         E = []
         xb = self.b
+        cont = 0
         while flag:
             w = copy.deepcopy(cb)
             for g, r in E:  # BTRAN process
@@ -63,6 +64,9 @@ class Simplex:
                     min_tmp = xb[i]/y[i]
                     r = i
 
+            x = self.__create_sol__(xb, indexes_b)
+            previous_value = np.dot(np.transpose(self.c), x)  # Compute value of current solution
+
             new_column = -y/y[r]
             new_column[r] = 1/y[r]
             E.insert(0, (new_column, r))
@@ -77,13 +81,34 @@ class Simplex:
 
             a = copy.deepcopy(xb)
             a[E[0][1]] = 0
+
             xb = a + xb[E[0][1]]*E[0][0]  # Update solution
 
+            x = self.__create_sol__(xb, indexes_b)
+            new_value = np.dot(np.transpose(self.c), x)  # Compute value of new solution
+            if new_value >= previous_value != np.finfo(np.float64).max:  # Avoid infinite loops
+                if cont >= 5:
+                    break
+                else:
+                    cont += 1
+            if new_value < previous_value:
+                cont = 0
+
+        x = self.__create_sol__(xb, indexes_b)
+        return list(x)
+
+    def __create_sol__(self, xb, indexes_b):
+        """
+        Creates optimal solution starting from xb vector.
+        :param xb: xb vector
+        :param indexes_b: indexes of basis
+        :return: optimal solution
+        """
         x = np.zeros(len(self.c))
         for i in range(len(xb)):
             x_rounded = round(xb[i])
             x[indexes_b[i]] = xb[i] if np.abs(x_rounded - xb[i]) > 1e-7 else x_rounded
-        return list(x)
+        return x
 
     def __find_basis__(self):
         """

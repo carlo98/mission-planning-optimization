@@ -19,10 +19,10 @@ Energy = [[0, 1, 1, 1, 1],
           [1, 1, 1, 0, 1],
           [1, 1, 1, 1, 0]]
 Changes = [[0, 5, 10, 10, 7],
-           [2, 0, 10, 10, 10],
+           [2, 0, 10, 3, 10],
            [10, 1, 0, 2, 5],  # Play with 2 element of this row to see changes in result and test cycles
            [10, 10, 5, 0, 2],
-           [7, 10, 2, 5, 0]]
+           [1, 1, 2, 5, 0]]
 Rewards = [0, 6, 6, 6, 6]
 Difficulties = [0, 0.5, 0.5, 0.5, 0.5]
 max_t = 20

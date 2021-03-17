@@ -223,7 +223,7 @@ class MissionPlanOptimizer:
                     self.A[i].append(0.)
 
         self.c = self.c + list(np.zeros(len(self.A[0]) - len(self.c)))
-        self.c[self.N*self.N + 2] = np.finfo(np.float64).max
+        self.c[self.N*self.N + 2] = 10000
 
     def __create_combinations__(self) -> List:
         """
@@ -246,7 +246,7 @@ class MissionPlanOptimizer:
         new_a = np.array(curr_a)
         new_c = copy.deepcopy(curr_c)
 
-        new_c[self.N*self.N+4+i] = np.finfo(np.float64).max
+        new_c[self.N*self.N+4+i] = 10000
         new_b[4+i] = zero_or_one
 
         return list(new_a), new_b, new_c
