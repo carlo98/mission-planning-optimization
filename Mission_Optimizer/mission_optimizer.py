@@ -8,36 +8,45 @@ from typing import List
 import itertools
 import copy
 import numpy as np
+
+from Mission_Optimizer.a_star import AStarPlanner
 from Mission_Optimizer.simplex import Simplex
 
 
 class MissionPlanOptimizer:
 
-    def __init__(self, time_matrix: List[List[int]], energy_matrix: List[List[int]], cost_matrix: List[List[int]],
-                 rewards: List[int], difficulties: List[float], max_t: int, max_e: int):
+    def __init__(self, ox: List[int], oy: List[int], sx: int, sy: int, rr: int, gx: List[int], gy: List[int],
+                 vel: float, rewards: List[int], difficulties: List[float], max_t: int, max_e: int, resolution: int, show_animation=False):
         """
-        :param time_matrix: list of lists (n+1)x(n+1) where T[i, j] is the time required to go from goal j to goal i
-        :param energy_matrix: list of lists (n+1)x(n+1) where E[i, j] is the energy required to go from goal j to goal i
-        :param cost_matrix: list of lists (n+1)x(n+1) where E[i, j] is the number of changes of direction required to go from goal j to goal i
-        :param rewards: list (n+1) where R[i] is the reward obtained by visiting goal i
-        :param difficulties: list (n+1) where D[i] is the difficulty associated to goal i
-        :param max_t: Integer, maximum time available in seconds
-        :param max_e: Integer 0-100, maximum energy available
+        @:param ox: list of obstacles' x coordinate
+        @:param oy: list of obstacles' y coordinate
+        @:param sx: x coordinate of start position
+        @:param sy: y coordinate of start position
+        @:param rr: radius of agent
+        @:param gx: list of goals' x coordinate
+        @:param gy: list of goals' y coordinate
+        @:param vel: velocity of agent
+        @:param rewards: list (n+1) where R[i] is the reward obtained by visiting goal i
+        @:param difficulties: list (n+1) where D[i] is the difficulty associated to goal i
+        @:param max_t: Integer, maximum time available in seconds
+        @:param max_e: Integer 0-100, maximum energy available
+        @:param resolution: Resolution of grid.
+        @:param show_animation: Whether to show or not the animation for trajectory planning
         With n = number of goals + 1 (starting position).
         """
-        if not isinstance(time_matrix, List) or not isinstance(energy_matrix, List) or not isinstance(cost_matrix, List) \
-                or not isinstance(rewards, List) or not isinstance(difficulties, List) or not isinstance(max_t, int) \
-                or not isinstance(max_e, int):
+        if not isinstance(rewards, List) or not isinstance(difficulties, List) or not isinstance(max_t, int) or not isinstance(max_e, int)\
+                or not isinstance(ox, List) or not isinstance(oy, List) or not isinstance(sx, int) or not isinstance(sy, int) or not isinstance(rr, int)\
+                or not isinstance(gx, List) or not isinstance(gy, List) or not isinstance(vel, float):
             print("Check inputs' type.")
             raise TypeError
-        self.T = np.array(time_matrix)
-        self.E = np.array(energy_matrix)
+        trajectory_planner = AStarPlanner(ox, oy, resolution, rr, show_animation=show_animation)
+        self.T, self.Costs = trajectory_planner.planning(sx, sy, gx, gy, vel)
+        self.E = self.__compute_energy_matrix__()
         self.max_t = max_t
         self.max_e = max_e
         self.N = len(self.E)
         self.R = rewards
         self.D = difficulties
-        self.Costs = cost_matrix
         self.A = None
         self.c = None
         self.b = None
@@ -80,7 +89,7 @@ class MissionPlanOptimizer:
             return 1, []
 
         value_sol = np.dot(curr_c[:self.N*self.N], solution[:self.N*self.N])
-        if value_sol <= best_val_sol and np.all([check_integer(x) for x in solution]) and np.all(np.array(solution) >= 0):
+        if value_sol <= best_val_sol and np.all([check_integer(x) for x in solution[:self.N*self.N]]) and np.all(np.array(solution) >= 0):
             return value_sol, copy.deepcopy(solution)
 
         if value_sol > best_val_sol:
@@ -95,7 +104,7 @@ class MissionPlanOptimizer:
                 new_a, new_b, new_c = self.__add_constraint__(i, 0, curr_a, curr_b, curr_c)
                 current_best_val, current_best_sol = self.run_rec(best_sol, best_val_sol, new_a, new_b, new_c)
 
-                if current_best_val == value_sol and np.all([check_integer(x) for x in current_best_sol]) and np.all(np.array(current_best_sol) >= 0):
+                if current_best_val == value_sol and np.all([check_integer(x) for x in current_best_sol[:self.N*self.N]]) and np.all(np.array(current_best_sol) >= 0):
                     break
 
                 new_a, new_b, new_c = self.__add_constraint__(i, 1, curr_a, curr_b, curr_c)
@@ -147,6 +156,14 @@ class MissionPlanOptimizer:
                 if i != j:  # We don't want loops
                     self.c[i][j] = self.Costs[i][j] - self.R[i] * (1 - self.D[i])
         self.c = list(self.c.flatten())
+
+    def __compute_energy_matrix__(self):
+        """
+        Computes energy matrix from time matrix.
+        """
+        alpha = 1.
+        energy_matrix = alpha*np.array(self.T)
+        return energy_matrix
 
     def __create_A_b__(self):
         """

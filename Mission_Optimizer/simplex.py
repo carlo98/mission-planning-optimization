@@ -86,12 +86,12 @@ class Simplex:
 
             x = self.__create_sol__(xb, indexes_b)
             new_value = np.dot(np.transpose(self.c), x)  # Compute value of new solution
-            if new_value >= previous_value != np.finfo(np.float64).max:  # Avoid infinite loops
+            if (new_value - previous_value) >= -1e-14 and previous_value != np.finfo(np.float64).max:  # Avoid infinite loops
                 if cont >= 5:
                     break
                 else:
                     cont += 1
-            if new_value < previous_value:
+            if (new_value - previous_value) < -1e-14:
                 cont = 0
 
         x = self.__create_sol__(xb, indexes_b)

@@ -6,7 +6,7 @@ Tested on python3.8.
 
 ## Installation
 ```
-python3 -m pip install numpy
+python3 -m pip install numpy matplotlib
 ```
 
 ## Use
