@@ -7,6 +7,7 @@ Author: Carlo Cena
 from typing import List
 import itertools
 import copy
+from heapq import heappop, heappush
 import numpy as np
 
 from Mission_Optimizer.a_star import AStarPlanner
@@ -60,66 +61,41 @@ class MissionPlanOptimizer:
         constrained optimization problem.
         :return Dictionary with the best solution and its value, if no solution exists result["solution"] is None.
         """
-        best_sol_value = 0.
-        best_sol = None
+        counter = itertools.count()
+        best_sol = []
 
-        best_sol_value, best_sol = self.run_rec(best_sol, best_sol_value, self.A, self.b, self.c)
-
-        print(best_sol)
+        node = (self.A, self.b, self.c)
+        heap = [(next(counter), node)]
+        best_val_sol = 0
+        while len(heap) > 0:
+            _, node = heappop(heap)
+            solver = Simplex(node[0], node[2], node[1])
+            solution = solver.run()
+            if len(solution) == 0:
+                continue
+            value_sol = np.dot(self.c, solution)
+            print("Result: ", value_sol, " Best result: ", best_val_sol)
+            if len(solution) != 0:
+                if value_sol >= best_val_sol:
+                    continue
+                elif np.all([check_integer(x) for x in solution[:self.N*self.N]]):
+                    best_sol = solution[:self.N*self.N]
+                    best_val_sol = value_sol
+                else:
+                    for i, value in enumerate(solution):
+                        if not check_integer(value):
+                            new_a, new_b, new_c = self.__add_constraint__(i, 0, node[0], node[1], node[2])
+                            new_node = (new_a, new_b, new_c)
+                            heappush(heap, (next(counter), new_node))
+                            new_a, new_b, new_c = self.__add_constraint__(i, 1, node[0], node[1], node[2])
+                            new_node = (new_a, new_b, new_c)
+                            heappush(heap, (next(counter), new_node))
+                            break
 
         if len(best_sol) == 0:
             return {"solution": None, "value": 1}
-        value = np.dot(self.c[:self.N*self.N], best_sol[:self.N*self.N])
-        return {"solution": best_sol[:self.N*self.N], "value": value}
-
-    def run_rec(self, best_sol, best_val_sol, curr_a, curr_b, curr_c):
-        """
-        Recursive method used for branch and bound.
-        :param best_sol: Best solution found so far
-        :param best_val_sol: Best solution's value
-        :param curr_a: current matrix of constraints
-        :param curr_b: current RHS values
-        :param curr_c: current costs
-        :return value_sol, sol: value of best solution found and solution
-        """
-        solver = Simplex(curr_a, curr_c, curr_b)
-        solution = solver.run()
-
-        if len(solution) == 0:
-            return 1, []
-
-        value_sol = np.dot(curr_c[:self.N*self.N], solution[:self.N*self.N])
-        if value_sol <= best_val_sol and np.all([check_integer(x) for x in solution[:self.N*self.N]]) and np.all(np.array(solution) >= 0):
-            return value_sol, copy.deepcopy(solution)
-
-        if value_sol > best_val_sol:
-            return 1, []
-
-        current_best_sol = best_sol
-        current_best_val = best_val_sol
-
-        for i, value in enumerate(solution[:self.N*self.N]):
-            if not check_integer(value):
-
-                new_a, new_b, new_c = self.__add_constraint__(i, 0, curr_a, curr_b, curr_c)
-                current_best_val, current_best_sol = self.run_rec(best_sol, best_val_sol, new_a, new_b, new_c)
-
-                if current_best_val == value_sol and np.all([check_integer(x) for x in current_best_sol[:self.N*self.N]]) and np.all(np.array(current_best_sol) >= 0):
-                    break
-
-                new_a, new_b, new_c = self.__add_constraint__(i, 1, curr_a, curr_b, curr_c)
-                val_sol_1, sol1 = self.run_rec(current_best_sol, current_best_val, new_a, new_b, new_c)
-
-                if val_sol_1 < current_best_val:
-                    current_best_val = val_sol_1
-                    current_best_sol = sol1
-
-                if current_best_val == 1:  # No possible solution
-                    return 1, []
-
-                break
-
-        return current_best_val, current_best_sol
+        value = np.dot(self.c[:self.N*self.N], best_sol)
+        return {"solution": best_sol, "value": value}
 
     def extract_path(self, solution):
         """

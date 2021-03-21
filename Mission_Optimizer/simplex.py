@@ -7,6 +7,8 @@ from typing import List
 import numpy as np
 import copy
 
+MAX_ITER = 100
+
 
 class Simplex:
     """
@@ -31,12 +33,12 @@ class Simplex:
         """
         :return: Optimal solution of given problem.
         """
-        matrix_b, matrix_n, cb, cn, indexes_b, indexes_n = self.__find_basis__()
-        flag = True
+        matrix_n, cb, cn, indexes_b, indexes_n = self.__find_basis__()
         E = []
         xb = self.b
         cont = 0
-        while flag:
+        flag = True
+        while flag and cont < MAX_ITER:
             w = copy.deepcopy(cb)
             for g, r in E:  # BTRAN process
                 w[r] = np.dot(w, g)
@@ -64,15 +66,11 @@ class Simplex:
                     min_tmp = xb[i]/y[i]
                     r = i
 
-            x = self.__create_sol__(xb, indexes_b)
-            previous_value = np.dot(np.transpose(self.c), x)  # Compute value of current solution
-
             new_column = -y/y[r]
             new_column[r] = 1/y[r]
             E.insert(0, (new_column, r))
 
-            matrix_n[:, k] = copy.deepcopy(matrix_b[:, r])
-            matrix_b[:, r] = self.A[:, indexes_n[k]]
+            matrix_n[:, k] = copy.deepcopy(self.A[:, indexes_b[r]])
             tmp = indexes_b[r]
             indexes_b[r] = indexes_n[k]
             indexes_n[k] = tmp
@@ -84,15 +82,7 @@ class Simplex:
 
             xb = a + xb[E[0][1]]*E[0][0]  # Update solution
 
-            x = self.__create_sol__(xb, indexes_b)
-            new_value = np.dot(np.transpose(self.c), x)  # Compute value of new solution
-            if (new_value - previous_value) >= -1e-14 and previous_value != np.finfo(np.float64).max:  # Avoid infinite loops
-                if cont >= 5:
-                    break
-                else:
-                    cont += 1
-            if (new_value - previous_value) < -1e-14:
-                cont = 0
+            cont += 1
 
         x = self.__create_sol__(xb, indexes_b)
         return list(x)
@@ -114,7 +104,6 @@ class Simplex:
         """
         Finds a basis B for matrix A and returns matrix N and vectors cb, cn and dictionary of indexesB taken.
         """
-        matrix_b = copy.deepcopy(self.A[:, -len(self.A):])
         matrix_n = copy.deepcopy(self.A[:, :-len(self.A)])
         cb = copy.deepcopy(self.c[-len(self.A):])
         cn = copy.deepcopy(self.c[:-len(self.A)])
@@ -124,4 +113,4 @@ class Simplex:
             indexes_b[i] = len(self.A[0]) - len(self.A) + i
         for i in range(len(self.A[0])-len(self.A)):
             indexes_n[i] = i
-        return matrix_b, matrix_n, cb, cn, indexes_b, indexes_n
+        return matrix_n, cb, cn, indexes_b, indexes_n
