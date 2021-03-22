@@ -27,5 +27,11 @@ and adapted in order to work with multiple goals, the script is called internall
 The path which maximizes the collected price, while minimizing the cost and keeping the energy 
 and time requirements under the given thresholds, will be printed on the terminal.
 
+## Example
+An example of usage is given in the script main.py:
+```
+python3 main.py
+```
+
 ## Details
 More information can be found in the pdf report available in the repository.
