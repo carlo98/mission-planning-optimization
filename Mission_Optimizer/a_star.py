@@ -7,7 +7,6 @@ author: Atsushi Sakai(@Atsushi_twi)
 
 See Wikipedia article (https://en.wikipedia.org/wiki/A*_search_algorithm)
 
-Small changes in order to deal with multiple goals.
 """
 
 import math

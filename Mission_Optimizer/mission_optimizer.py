@@ -12,6 +12,8 @@ import numpy as np
 
 from Mission_Optimizer.a_star import AStarPlanner
 from Mission_Optimizer.simplex import Simplex
+from Mission_Optimizer.cost_functions import compute_cost_vector, compute_energy_matrix
+from Mission_Optimizer.utility import check_integer
 
 
 class MissionPlanOptimizer:
@@ -42,7 +44,7 @@ class MissionPlanOptimizer:
             raise TypeError
         trajectory_planner = AStarPlanner(ox, oy, resolution, rr, show_animation=show_animation)
         self.T, self.Costs = trajectory_planner.planning(sx, sy, gx, gy, vel)
-        self.E = self.__compute_energy_matrix__()
+        self.E = compute_energy_matrix(self.T)
         self.max_t = max_t
         self.max_e = max_e
         self.N = len(self.E)
@@ -119,27 +121,8 @@ class MissionPlanOptimizer:
         """
         Creates matrix A and vectors b and c for simplex algorithm.
         """
-        self.__compute_cost_vector__()
+        self.c = compute_cost_vector(self.Costs, self.N, self.R, self.D)
         self.__create_A_b__()
-
-    def __compute_cost_vector__(self):
-        """
-        Computes the cost array for simplex.
-        """
-        self.c = np.array(self.Costs, dtype=np.float64)
-        for i in range(self.N):
-            for j in range(self.N):
-                if i != j:  # We don't want loops
-                    self.c[i][j] = self.Costs[i][j] - self.R[i] * (1 - self.D[i])
-        self.c = list(self.c.flatten())
-
-    def __compute_energy_matrix__(self):
-        """
-        Computes energy matrix from time matrix.
-        """
-        alpha = 1.
-        energy_matrix = alpha*np.array(self.T)
-        return energy_matrix
 
     def __create_A_b__(self):
         """
@@ -243,12 +226,3 @@ class MissionPlanOptimizer:
         new_b[4+i] = zero_or_one
 
         return list(new_a), new_b, new_c
-
-
-def check_integer(value):
-    """
-    Checks if given value is integer.
-    :param value: float value
-    :return True if integer, False otherwise
-    """
-    return value == int(value)
