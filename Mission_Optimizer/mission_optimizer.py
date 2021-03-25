@@ -9,6 +9,7 @@ import itertools
 import copy
 from heapq import heappop, heappush
 import numpy as np
+import logging
 
 from Mission_Optimizer.a_star import AStarPlanner
 from Mission_Optimizer.simplex import Simplex
@@ -40,7 +41,7 @@ class MissionPlanOptimizer:
         if not isinstance(rewards, List) or not isinstance(difficulties, List) or not isinstance(max_t, int) or not isinstance(max_e, int)\
                 or not isinstance(ox, List) or not isinstance(oy, List) or not isinstance(sx, int) or not isinstance(sy, int) or not isinstance(rr, int)\
                 or not isinstance(gx, List) or not isinstance(gy, List) or not isinstance(vel, float):
-            print("Check inputs' type.")
+            logging.error("Check inputs' type.")
             raise TypeError
         trajectory_planner = AStarPlanner(ox, oy, resolution, rr, show_animation=show_animation)
         self.T, self.Costs = trajectory_planner.planning(sx, sy, gx, gy, vel)
@@ -67,16 +68,17 @@ class MissionPlanOptimizer:
         best_sol = []
 
         node = (self.A, self.b, self.c)
-        heap = [(next(counter), node)]
+        problems = [(next(counter), node)]
         best_val_sol = 0
-        while len(heap) > 0:
-            _, node = heappop(heap)
+        while len(problems) > 0:
+            num_prob, node = heappop(problems)
+            logging.info("Problem number: %d", num_prob)
             solver = Simplex(node[0], node[2], node[1])
             solution = solver.run()
             if len(solution) == 0:
                 continue
             value_sol = np.dot(self.c, solution)
-            print("Result: ", value_sol, " Best result: ", best_val_sol)
+            logging.info("\tResult: %f Best result: %f", value_sol, best_val_sol)
             if len(solution) != 0:
                 if value_sol >= best_val_sol:
                     continue
@@ -88,10 +90,10 @@ class MissionPlanOptimizer:
                         if not check_integer(value):
                             new_a, new_b, new_c = self.__add_constraint__(i, 0, node[0], node[1], node[2])
                             new_node = (new_a, new_b, new_c)
-                            heappush(heap, (next(counter), new_node))
+                            heappush(problems, (next(counter), new_node))
                             new_a, new_b, new_c = self.__add_constraint__(i, 1, node[0], node[1], node[2])
                             new_node = (new_a, new_b, new_c)
-                            heappush(heap, (next(counter), new_node))
+                            heappush(problems, (next(counter), new_node))
                             break
 
         if len(best_sol) == 0:

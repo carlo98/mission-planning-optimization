@@ -6,7 +6,9 @@ import json
 import time
 from Mission_Optimizer.mission_optimizer import MissionPlanOptimizer
 from Mission_Optimizer.utility import build_map
+import logging
 
+logging.basicConfig(level=logging.INFO)
 show_animation = False  # Slower If true
 
 # Starting position
@@ -46,17 +48,18 @@ end_time = time.time()
 
 # Accessing variables
 if result["solution"] is not None:
-    print("Minimized value")
-    print(result["value"])
-    print("Optimum path")
     optimizer1_path = optimizer1.extract_path(result["solution"])
-    print(optimizer1_path)
+
     r = 0
     for i in optimizer1_path:
         r += Rewards[i]
-    print("Collected Reward")
-    print(r)
-else:
-    print("No solution has been found.")
+    logging.info("Collected Reward: %f", r)
 
-print("Time for solution: ", end_time-start_time)
+    print("Minimized value")
+    print(str(result["value"]))
+    print("Optimum path")
+    print(optimizer1_path)
+else:
+    logging.info("No solution has been found.")
+
+logging.info("Time for solution: " + str(end_time-start_time))

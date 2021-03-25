@@ -6,6 +6,7 @@ Author: Carlo Cena
 from typing import List
 import numpy as np
 import copy
+import logging
 
 MAX_ITER = 100
 
@@ -23,7 +24,7 @@ class Simplex:
         :param b: nx1 vector for constraints.
         """
         if not isinstance(a, List) or not isinstance(c, List) or not isinstance(b, List):
-            print("Check inputs' type.")
+            logging.error("Check inputs' type.")
             raise TypeError
         self.A = np.array(a, dtype=np.float64)
         self.c = np.array(c, dtype=np.float64)
