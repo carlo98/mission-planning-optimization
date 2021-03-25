@@ -26,7 +26,7 @@ in particular, it needs:
 - The coordinates of all the goals
 - The reward and the difficulties associated to each goal
 - The maximum time available to collect as much points as possible
-- The maximum energy available (Optional for now, change the coefficient in the method "\_\_compute_energy_matrix\_\_")
+- The maximum energy available
 
 All these parameters should be written in json files, as shown in "main.py".
 
