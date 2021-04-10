@@ -20,27 +20,28 @@ from Mission_Optimizer.utility import check_integer
 class MissionPlanOptimizer:
 
     def __init__(self, ox: List[int], oy: List[int], sx: int, sy: int, rr: int, gx: List[int], gy: List[int],
-                 vel: float, rewards: List[int], difficulties: List[float], max_t: int, max_e: int, resolution: int, show_animation=False):
+                 vel: float, rewards: List[int], difficulties: List[float], max_t: int, max_e: int, resolution: int, costs_changes: dict,
+                 show_animation=False):
         """
-        @:param ox: list of obstacles' x coordinate
-        @:param oy: list of obstacles' y coordinate
-        @:param sx: x coordinate of start position
-        @:param sy: y coordinate of start position
-        @:param rr: radius of agent
-        @:param gx: list of goals' x coordinate
-        @:param gy: list of goals' y coordinate
-        @:param vel: velocity of agent
-        @:param rewards: list (n+1) where R[i] is the reward obtained by visiting goal i
-        @:param difficulties: list (n+1) where D[i] is the difficulty associated to goal i
-        @:param max_t: Integer, maximum time available in seconds
-        @:param max_e: Integer 0-100, maximum energy available
+        @:param oy: list of obstacles' y coordinate.
+        @:param sx: x coordinate of start position.
+        @:param sy: y coordinate of start position.
+        @:param rr: radius of agent.
+        @:param gx: list of goals' x coordinate.
+        @:param gy: list of goals' y coordinate.
+        @:param vel: velocity of agent.
+        @:param rewards: list (n+1) where R[i] is the reward obtained by visiting goal i.
+        @:param difficulties: list (n+1) where D[i] is the difficulty associated to goal i.
+        @:param max_t: Integer, maximum time available in seconds.
+        @:param max_e: Integer 0-100, maximum energy available.
         @:param resolution: Resolution of grid.
-        @:param show_animation: Whether to show or not the animation for trajectory planning
+        @:param costs_changes: Dictionary with cost associated to each number of changes of direction.
+        @:param show_animation: Whether to show or not the animation for trajectory planning.
         With n = number of goals + 1 (starting position).
         """
         if not isinstance(rewards, List) or not isinstance(difficulties, List) or not isinstance(max_t, int) or not isinstance(max_e, int)\
                 or not isinstance(ox, List) or not isinstance(oy, List) or not isinstance(sx, int) or not isinstance(sy, int) or not isinstance(rr, int)\
-                or not isinstance(gx, List) or not isinstance(gy, List) or not isinstance(vel, float):
+                or not isinstance(gx, List) or not isinstance(gy, List) or not isinstance(vel, float) or not isinstance(costs_changes, dict):
             logging.error("Check inputs' type.")
             raise TypeError
         trajectory_planner = AStarPlanner(ox, oy, resolution, rr, show_animation=show_animation)
@@ -48,9 +49,10 @@ class MissionPlanOptimizer:
         self.E = compute_energy_matrix(self.T)
         self.max_t = max_t
         self.max_e = max_e
-        self.N = len(self.E)
-        self.R = rewards
-        self.D = difficulties
+        self.R = [0.] + rewards
+        self.D = [0.] + difficulties
+        self.N = len(self.R)
+        self.costs_changes = costs_changes
         self.A = None
         self.c = None
         self.b = None
@@ -73,11 +75,12 @@ class MissionPlanOptimizer:
         while len(problems) > 0:
             num_prob, node = heappop(problems)
             logging.info("Problem number: %d", num_prob)
+            logging.info("Number of constraints: %d", len(node[0]))
             solver = Simplex(node[0], node[2], node[1])
             solution = solver.run()
             if len(solution) == 0:
                 continue
-            value_sol = np.dot(self.c, solution)
+            value_sol = np.dot(self.c[:self.N*self.N], solution[:self.N*self.N])
             logging.info("\tResult: %f Best result: %f", value_sol, best_val_sol)
             if len(solution) != 0:
                 if value_sol >= best_val_sol:
@@ -86,7 +89,7 @@ class MissionPlanOptimizer:
                     best_sol = solution[:self.N*self.N]
                     best_val_sol = value_sol
                 else:
-                    for i, value in enumerate(solution):
+                    for i, value in enumerate(solution[:self.N*self.N]):
                         if not check_integer(value):
                             new_a, new_b, new_c = self.__add_constraint__(i, 0, node[0], node[1], node[2])
                             new_node = (new_a, new_b, new_c)
@@ -108,22 +111,32 @@ class MissionPlanOptimizer:
         """
         assert (solution is not None), "Solution should not be None!"
         goal_matrix = np.reshape(solution, (self.N, self.N))
-        optimum_path = [0]
+        optimum_path = []
+        for i in range(1, self.N):  # First edge
+            if goal_matrix[i][0] == 1:
+                optimum_path.append(i)
+                break
+        if len(optimum_path) == 0:  # No path from starting position
+            logging.warning("No path from starting position found.")
+            return []
+
         flag = True
         while flag:
             flag = False
-            for i in range(self.N):
+            for i in range(1, self.N):
                 if goal_matrix[i][optimum_path[-1]] == 1:
                     optimum_path.append(i)
                     flag = True
                     break
+
+        optimum_path = [x-1 for x in optimum_path]  # Removing index of starting position
         return optimum_path
 
     def __simplex_structures__(self):
         """
         Creates matrix A and vectors b and c for simplex algorithm.
         """
-        self.c = compute_cost_vector(self.Costs, self.N, self.R, self.D)
+        self.c = compute_cost_vector(self.Costs, self.N, self.R, self.D, self.costs_changes)
         self.__create_A_b__()
 
     def __create_A_b__(self):
@@ -148,14 +161,14 @@ class MissionPlanOptimizer:
         self.A.append(list(self.E.flatten()))  # (2)
         self.b.append(self.max_e)
 
-        self.A.append(list(np.zeros(len(self.c))))  # (3.2)
+        self.A.append(list(np.zeros(len(self.c))))  # (3)
         self.b.append(1.)
-        for i in range(len(self.R)):
-            self.A[-1][i * len(self.R)] = 1.
+        for i in range(self.N):
+            self.A[-1][i * self.N] = 1.
 
         self.A.append(list(np.zeros(len(self.c))))  # (4)
         self.b.append(0.)
-        for i in range(len(self.R)):
+        for i in range(self.N):
             self.A[-1][i] = 1.
 
         for i in range(len(self.c)):  # (5)
@@ -163,35 +176,35 @@ class MissionPlanOptimizer:
             self.A[-1][i] = 1.
             self.b.append(1.)
 
-        for i in range(1, len(self.R)):  # (6)
+        for i in range(1, self.N):  # (6)
             self.A.append(list(np.zeros(len(self.c))))
             self.b.append(1.)
-            for j in range(len(self.R)):
-                self.A[-1][i * len(self.R) + j] = 1.
+            for j in range(self.N):
+                self.A[-1][i * self.N + j] = 1.
 
-        for i in range(len(self.R)):  # (7)
+        for i in range(self.N):  # (7)
             self.A.append(list(np.zeros(len(self.c))))
             self.b.append(1.)
-            for j in range(len(self.R)):
-                self.A[-1][i + j * len(self.R)] = 1.
+            for j in range(self.N):
+                self.A[-1][i + j * self.N] = 1.
 
         combs = self.__create_combinations__()  # (8.1)
         for comb in combs:
             self.A.append(list(np.zeros(len(self.c))))
             self.b.append(len(comb)-1)
             for goal in comb:
-                for j in range(len(self.R)):
+                for j in range(self.N):
                     if j in comb and j != goal:
-                        self.A[-1][goal * len(self.R) + j] = 1
+                        self.A[-1][goal * self.N + j] = 1
 
-        for i in range(1, len(self.R)):  # (8.2)
+        for i in range(1, self.N):  # (8.2)
             self.A.append(list(np.zeros(len(self.c))))
             self.b.append(1.)
-            for j in range(len(self.R)):
+            for j in range(self.N):
                 if j != i:
-                    self.A[-1][i * len(self.R) + j] = -1.
-            for j in range(len(self.R)):
-                self.A[-1][i + j * len(self.R)] = 2.
+                    self.A[-1][i * self.N + j] = -1.
+            for j in range(self.N):
+                self.A[-1][i + j * self.N] = 2.
 
         for i in range(len(self.A)):  # Adding slack variables
             for j in range(len(self.A)):
@@ -200,8 +213,10 @@ class MissionPlanOptimizer:
                 else:
                     self.A[i].append(0.)
 
+        tmp_len = len(self.c)
         self.c = self.c + list(np.zeros(len(self.A[0]) - len(self.c)))
-        self.c[self.N*self.N + 2] = 10000
+
+        self.c[tmp_len + 2] = 10000  # 3
 
     def __create_combinations__(self) -> List:
         """
@@ -209,8 +224,8 @@ class MissionPlanOptimizer:
         @:return List of tuples, where each tuple is a combination of goals
         """
         combs = []
-        goals = list(range(1, len(self.R)))
-        for i in range(2, len(self.R)):
+        goals = list(range(1, self.N))
+        for i in range(2, self.N):
             combs += ([x for x in itertools.combinations(goals, i)])
         return combs
 

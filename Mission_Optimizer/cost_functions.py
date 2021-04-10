@@ -6,7 +6,7 @@ Author: Carlo Cena
 import numpy as np
 
 
-def compute_cost_vector(costs, num_goals, rewards, diffs):
+def compute_cost_vector(costs, num_goals, rewards, diffs, costs_changes):
     """
     Computes the cost array for simplex.
     """
@@ -14,7 +14,13 @@ def compute_cost_vector(costs, num_goals, rewards, diffs):
     for i in range(num_goals):
         for j in range(num_goals):
             if i != j:  # We don't want loops
-                c[i][j] = costs[i][j] - rewards[i] * (1 - diffs[i])
+                if costs[i][j] not in costs_changes.keys():
+                    key = "default"
+                else:
+                    key = costs[i][j]
+                c[i][j] = costs_changes[key] * rewards[i] * (diffs[i] - 1)  # -(1 - diffs[i]), because we want to
+
+    c -= np.max(c[c < 0]) / 2
     return list(c.flatten())
 
 

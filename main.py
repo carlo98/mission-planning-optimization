@@ -29,6 +29,7 @@ with open("agent_par.json") as json_file:
     agent_par = json.load(json_file)
     robot_radius = agent_par["robot_radius"]  # [m], int
     vel = agent_par["vel"]  # [m/s], float
+    costs_changes = agent_par["costs_changes"]
 
 # Set obstacle positions
 ox, oy, grid_size = build_map("map.json")
@@ -40,7 +41,7 @@ if show_animation:  # pragma: no cover
     plt.grid(True)
     plt.axis("equal")
 
-optimizer1 = MissionPlanOptimizer(ox, oy, sx, sy, robot_radius, gx, gy, vel, Rewards, Difficulties, max_t, max_e, grid_size, show_animation=show_animation)
+optimizer1 = MissionPlanOptimizer(ox, oy, sx, sy, robot_radius, gx, gy, vel, Rewards, Difficulties, max_t, max_e, grid_size, costs_changes, show_animation=show_animation)
 
 start_time = time.time()
 result = optimizer1.run()

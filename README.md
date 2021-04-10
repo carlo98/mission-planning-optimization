@@ -25,6 +25,7 @@ in particular, it needs:
 - The coordinates of the starting position
 - The coordinates of all the goals
 - The reward and the difficulties associated to each goal
+- The cost associated to each number of changes of direction
 - The maximum time available to collect as much points as possible
 - The maximum energy available
 
@@ -68,6 +69,8 @@ in the file "problem_par.json", as:
 The file "agent_par.json" contains the parameters associated to the agent, such as:
 - An integer, called "robot_radius", which represents the radius of the agent
 - A float, called "vel", that represents the constant velocity of the agent
+- A dictionary, called "costs_changes", where each key is a number of changes of direction and has as value the cost associated to it;
+one "default" key should also be provided.
 
 ## Details <a name="details"></a>
 More information can be found in the pdf report available in the repository.
