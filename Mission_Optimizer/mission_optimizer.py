@@ -188,15 +188,6 @@ class MissionPlanOptimizer:
             for j in range(self.N):
                 self.A[-1][i + j * self.N] = 1.
 
-        combs = self.__create_combinations__()  # (8.1)
-        for comb in combs:
-            self.A.append(list(np.zeros(len(self.c))))
-            self.b.append(len(comb)-1)
-            for goal in comb:
-                for j in range(self.N):
-                    if j in comb and j != goal:
-                        self.A[-1][goal * self.N + j] = 1
-
         for i in range(1, self.N):  # (8.2)
             self.A.append(list(np.zeros(len(self.c))))
             self.b.append(1.)
@@ -205,6 +196,36 @@ class MissionPlanOptimizer:
                     self.A[-1][i * self.N + j] = -1.
             for j in range(self.N):
                 self.A[-1][i + j * self.N] = 2.
+
+        tmp_len = len(self.c)
+        self.c = self.c + list(np.zeros(self.N))  # (8.1 MTZ)
+        for i in range(1, self.N):  # <= N
+            self.A.append(list(np.zeros(len(self.c))))
+            self.A[-1][tmp_len + i] = 1
+            self.b.append(self.N)
+        for i in range(1, self.N):  # >= 2
+            self.A.append(list(np.zeros(len(self.c))))
+            self.b.append(0)
+            self.A[-1][tmp_len] = 2  # u_1 always equal to one
+            self.A[-1][tmp_len + i] = -1
+
+        for i in range(self.N):
+            for j in range(1, self.N):
+                if i != j:
+                    self.A.append(list(np.zeros(len(self.c))))
+                    self.b.append(self.N-2)
+                    self.A[-1][tmp_len + i] = 1
+                    self.A[-1][tmp_len + j] = -1
+                    self.A[-1][j * self.N + i] = self.N-1
+
+        self.A.append(list(np.zeros(len(self.c))))  # 8 for u_1
+        self.A[-1][tmp_len] = 1
+        self.b.append(1)
+        
+        for i in range(len(self.A)):  # Setting all rows of A to the same length
+            tmp_cont = len(self.c) - len(self.A[i])
+            for j in range(tmp_cont):
+                self.A[i].append(0.)
 
         for i in range(len(self.A)):  # Adding slack variables
             for j in range(len(self.A)):
@@ -217,17 +238,7 @@ class MissionPlanOptimizer:
         self.c = self.c + list(np.zeros(len(self.A[0]) - len(self.c)))
 
         self.c[tmp_len + 2] = 10000  # 3
-
-    def __create_combinations__(self) -> List:
-        """
-        Creates all possible combinations of goals 1..n-1
-        @:return List of tuples, where each tuple is a combination of goals
-        """
-        combs = []
-        goals = list(range(1, self.N))
-        for i in range(2, self.N):
-            combs += ([x for x in itertools.combinations(goals, i)])
-        return combs
+        self.c[-1] = 10000  # 8 for u_1
 
     def __add_constraint__(self, i, zero_or_one, curr_a, curr_b, curr_c):
         """
