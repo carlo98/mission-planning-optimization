@@ -10,16 +10,16 @@ as a project for the course of Combinatorial Decision Making and Optimization (M
     1. [Map and Grid Size](#map_grid)
     2. [Problem Parameters](#problem_par)
     3. [Agent Parameters](#agent_par)
-5. [Details](#details)    
+5. [Details](#details)
     
 ## Installation <a name="installation"></a>
-Tested on python3.6 and python3.8.
+Tested on python3.6 and python3.8, a few changes in the code are required for it to work with python2.
 ```
 python3 -m pip install numpy matplotlib
 ```
 
 ## Usage <a name="usage"></a>
-The main class can be found in mission_optimizer.py, it requires a few information about the map and the agent (drone),
+The main class can be found in mission_optimizer.py, it requires a few information about the map and the agent,
 in particular, it needs:
 - The coordinates of all the obstacles
 - The coordinates of the starting position
@@ -45,7 +45,7 @@ python3 main.py
 ```
 
 ## JSON files <a name="json"></a>
-In the following paragraph are describe the json files used to represent map, obstacles, goals and drone parameters.
+In the following paragraph are describe the json files used to represent map, obstacles, goals and agent parameters.
 ### Map and Grid Size <a name="map_grid"></a>
 The map description, along with the grid size with which to discretize the map, should be written in "map.json", as:
 - A dictionary, named "walls", which contains two lists of integers of coordinates for the vertices of the walls.
