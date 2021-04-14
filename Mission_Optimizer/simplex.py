@@ -98,7 +98,7 @@ class Simplex:
         x = np.zeros(len(self.c))
         for i in range(len(xb)):
             x_rounded = round(xb[i])
-            x[indexes_b[i]] = xb[i] if np.abs(x_rounded - xb[i]) > 1e-9 else x_rounded
+            x[indexes_b[i]] = xb[i] if np.abs(x_rounded - xb[i]) >= 1e-4 else x_rounded
         return x
 
     def __find_basis__(self):

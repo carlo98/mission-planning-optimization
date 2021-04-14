@@ -69,6 +69,6 @@ if result["solution"] is not None:
     print("Optimum path")
     print(optimizer1_path)
 else:
-    print("No solution has been found.")
+    print("No bounded solution has been found.")
 
 print("Time for solution: " + str(end_time-start_time))

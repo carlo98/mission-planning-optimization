@@ -72,7 +72,7 @@ class MissionPlanOptimizer:
 
         node = (self.b, self.c)
         problems = [(next(counter), node)]  # Initial problem
-        best_val_sol = 0
+        best_val_sol = 0.
         n_squared = self.N*self.N
 
         while len(problems) > 0:
@@ -81,7 +81,7 @@ class MissionPlanOptimizer:
             solver = Simplex(self.A, node[0], node[1])
             start_time = time.time()
             solution = solver.run()  # Solving current problem
-            logging.info("\tTime fot intermediate solution: %.2f", time.time()-start_time)
+            logging.info("\tTime fot intermediate solution: %.4f", time.time()-start_time)
             if len(solution) == 0:  # No bounded solution
                 logging.info("\tProblem has no bounded solution")
                 continue
@@ -99,7 +99,7 @@ class MissionPlanOptimizer:
             else:
                 for i, value in enumerate(solution[:n_squared]):
                     if not check_integer(value):
-                        logging.info("\tBranching on variable %d", i)
+                        logging.info("\tBranching on variable %d with value %f", i, value)
                         new_b, new_c = self.__add_constraint__(i, 0, node[0], node[1])
                         new_node = (new_b, new_c)
                         heappush(problems, (next(counter), new_node))
@@ -228,7 +228,7 @@ class MissionPlanOptimizer:
         tmp_len = len(self.c)
         self.c = self.c + list(np.zeros(len(self.A[0]) - len(self.c)))  # Adding coefficients for slack variables
 
-        self.c[tmp_len + 2] = 10000  # 3, Big M method
+        self.c[tmp_len + 2] = 10000  # 3
 
     def __create_combinations__(self) -> List:
         """
@@ -250,7 +250,7 @@ class MissionPlanOptimizer:
         new_b = copy.deepcopy(curr_b)
         new_c = copy.deepcopy(curr_c)
 
-        new_c[self.N*self.N+4+i] = 10000  # Big M method
+        new_c[self.N*self.N+4+i] = 10000
         new_b[4+i] = zero_or_one
 
         return new_b, new_c
