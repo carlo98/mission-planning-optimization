@@ -156,12 +156,13 @@ class MissionPlanOptimizer:
         Constraints, given X solution vector and xi its components:
         1) TX <= max_t
         2) EX <= max_e
-        3) Goal 0 is starting point
-        4) Avoid loop in goal 0
+        3) Goal 0 is starting point, sum(x_i0) = 1 for i = 0..n
+        4) Avoid loop in goal 0, sum(x_0i) = 0 for i = 0..n
         5) 0 <= xi <= 1
-        6) Every goal can be reached only once
-        7) Every goal can have only a destination
-        8) connectivity constraints
+        6) Every goal can be reached only once, i = 1..n: sum(x_ij) <= 1 for j = 0..n
+        7) Every goal can have only a destination, j = 0..n: sum(x_ij) <= 1 for i = 0..n
+        8) connectivity constraints, sum(x_ij) < |S| - 1 for (i,j) in S && i!=j, where S subset of Goals and |S| >= 2
+        9) contiguity constraints, for k = 1..n: sum(x_kj) >= sum(x_ik) for i,j = 0..n
         """
         self.A = []
         self.b = []
@@ -199,7 +200,7 @@ class MissionPlanOptimizer:
             for j in range(self.N):
                 self.A[-1][i + j * self.N] = 1.
 
-        combs = self.__create_combinations__()  # (8.1)
+        combs = self.__create_combinations__()  # (8)
         for comb in combs:
             self.A.append(list(np.zeros(len(self.c))))
             self.b.append(len(comb)-1)
@@ -208,7 +209,7 @@ class MissionPlanOptimizer:
                     if j in comb and j != goal:
                         self.A[-1][goal * self.N + j] = 1
 
-        for i in range(1, self.N):  # (8.2)
+        for i in range(1, self.N):  # (9)
             self.A.append(list(np.zeros(len(self.c))))
             self.b.append(1.)
             for j in range(self.N):
@@ -225,13 +226,13 @@ class MissionPlanOptimizer:
                     self.A[i].append(0.)
 
         tmp_len = len(self.c)
-        self.c = self.c + list(np.zeros(len(self.A[0]) - len(self.c)))
+        self.c = self.c + list(np.zeros(len(self.A[0]) - len(self.c)))  # Adding coefficients for slack variables
 
         self.c[tmp_len + 2] = 10000  # 3, Big M method
 
     def __create_combinations__(self) -> List:
         """
-        Creates all possible combinations of goals 1..n-1
+        Creates all possible combinations of goals 1..n-1, smaller combinations are pairs.
         @:return List of tuples, where each tuple is a combination of goals
         """
         combs = []
