@@ -73,4 +73,4 @@ The file "agent_par.json" contains the parameters associated to the agent, such 
 one "default" key should also be provided.
 
 ## Details <a name="details"></a>
-More information can be found in the pdf report available in the repository.
+More information can be found in the pdf report available in the repository. (WORK IN PROGRESS)

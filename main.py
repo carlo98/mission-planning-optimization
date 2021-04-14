@@ -41,6 +41,14 @@ if show_animation:  # pragma: no cover
     plt.grid(True)
     plt.axis("equal")
 
+if max(Rewards) == 0 or min(Rewards) < 0:
+    print("Check rewards, all values should be >= 0 and at least one should be > 0.")
+    exit(-1)
+
+if max(Difficulties) > 1 or min(Difficulties) < 0 or max(Difficulties) == 0:
+    print("Check difficulties, range should be 0-1 and at least one value should be greater then 0.")
+    exit(-1)
+
 optimizer1 = MissionPlanOptimizer(ox, oy, sx, sy, robot_radius, gx, gy, vel, Rewards, Difficulties, max_t, max_e, grid_size, costs_changes, show_animation=show_animation)
 
 start_time = time.time()
@@ -54,13 +62,13 @@ if result["solution"] is not None:
     r = 0
     for i in optimizer1_path:
         r += Rewards[i]
-    logging.info("Collected Reward: %f", r)
+    print("Collected Reward: ", r)
 
     print("Minimized value")
     print(str(result["value"]))
     print("Optimum path")
     print(optimizer1_path)
 else:
-    logging.info("No solution has been found.")
+    print("No solution has been found.")
 
-logging.info("Time for solution: " + str(end_time-start_time))
+print("Time for solution: " + str(end_time-start_time))

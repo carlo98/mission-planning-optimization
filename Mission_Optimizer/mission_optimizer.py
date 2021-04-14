@@ -10,6 +10,7 @@ import copy
 from heapq import heappop, heappush
 import numpy as np
 import logging
+import time
 
 from Mission_Optimizer.a_star import AStarPlanner
 from Mission_Optimizer.simplex import Simplex
@@ -69,39 +70,48 @@ class MissionPlanOptimizer:
         counter = itertools.count()
         best_sol = []
 
-        node = (self.A, self.b, self.c)
-        problems = [(next(counter), node)]
+        node = (self.b, self.c)
+        problems = [(next(counter), node)]  # Initial problem
         best_val_sol = 0
+        n_squared = self.N*self.N
+
         while len(problems) > 0:
             num_prob, node = heappop(problems)
             logging.info("Problem number: %d", num_prob)
-            logging.info("Number of constraints: %d", len(node[0]))
-            solver = Simplex(node[0], node[2], node[1])
-            solution = solver.run()
-            if len(solution) == 0:
+            solver = Simplex(self.A, node[0], node[1])
+            start_time = time.time()
+            solution = solver.run()  # Solving current problem
+            logging.info("\tTime fot intermediate solution: %.2f", time.time()-start_time)
+            if len(solution) == 0:  # No bounded solution
+                logging.info("\tProblem has no bounded solution")
                 continue
-            value_sol = np.dot(self.c[:self.N*self.N], solution[:self.N*self.N])
-            logging.info("\tResult: %f Best result: %f", value_sol, best_val_sol)
-            if len(solution) != 0:
-                if value_sol >= best_val_sol:
-                    continue
-                elif np.all([check_integer(x) for x in solution[:self.N*self.N]]):
-                    best_sol = solution[:self.N*self.N]
-                    best_val_sol = value_sol
-                else:
-                    for i, value in enumerate(solution[:self.N*self.N]):
-                        if not check_integer(value):
-                            new_a, new_b, new_c = self.__add_constraint__(i, 0, node[0], node[1], node[2])
-                            new_node = (new_a, new_b, new_c)
-                            heappush(problems, (next(counter), new_node))
-                            new_a, new_b, new_c = self.__add_constraint__(i, 1, node[0], node[1], node[2])
-                            new_node = (new_a, new_b, new_c)
-                            heappush(problems, (next(counter), new_node))
-                            break
+            value_sol = np.dot(self.c[:n_squared], solution[:n_squared])
+            value_sol = np.around(value_sol, decimals=3)  # Avoiding small gains
+            logging.info("\tResult: %.3f Best result: %.3f", value_sol, best_val_sol)
 
-        if len(best_sol) == 0:
+            if value_sol >= best_val_sol:  # Solution worst then best integer one found so far
+                logging.info("\tSolution worst or equal then best integer one found so far")
+                continue
+            elif np.all([check_integer(x) for x in solution[:n_squared]]):  # Integer solution
+                logging.info("\tBest integer solution found so far")
+                best_sol = solution[:n_squared]
+                best_val_sol = value_sol
+            else:
+                for i, value in enumerate(solution[:n_squared]):
+                    if not check_integer(value):
+                        logging.info("\tBranching on variable %d", i)
+                        new_b, new_c = self.__add_constraint__(i, 0, node[0], node[1])
+                        new_node = (new_b, new_c)
+                        heappush(problems, (next(counter), new_node))
+                        new_b, new_c = self.__add_constraint__(i, 1, node[0], node[1])
+                        new_node = (new_b, new_c)
+                        heappush(problems, (next(counter), new_node))
+                        break
+
+        if len(best_sol) == 0:  # No bounded solution found
+            logging.warning("No bounded solution has been found.")
             return {"solution": None, "value": 1}
-        value = np.dot(self.c[:self.N*self.N], best_sol)
+        value = np.dot(self.c[:n_squared], best_sol)
         return {"solution": best_sol, "value": value}
 
     def extract_path(self, solution):
@@ -138,6 +148,7 @@ class MissionPlanOptimizer:
         """
         self.c = compute_cost_vector(self.Costs, self.N, self.R, self.D, self.costs_changes)
         self.__create_A_b__()
+        logging.info("Number of constraints: %d", len(self.A))
 
     def __create_A_b__(self):
         """
@@ -216,7 +227,7 @@ class MissionPlanOptimizer:
         tmp_len = len(self.c)
         self.c = self.c + list(np.zeros(len(self.A[0]) - len(self.c)))
 
-        self.c[tmp_len + 2] = 10000  # 3
+        self.c[tmp_len + 2] = 10000  # 3, Big M method
 
     def __create_combinations__(self) -> List:
         """
@@ -229,17 +240,16 @@ class MissionPlanOptimizer:
             combs += ([x for x in itertools.combinations(goals, i)])
         return combs
 
-    def __add_constraint__(self, i, zero_or_one, curr_a, curr_b, curr_c):
+    def __add_constraint__(self, i, zero_or_one, curr_b, curr_c):
         """
         Add integer constraints to variable i.
         :param i: index of variable with non integer value
         :param zero_or_one: This is a 0-1 integer programming problem, so the variables can be either 1s or 0s
         """
         new_b = copy.deepcopy(curr_b)
-        new_a = np.array(curr_a)
         new_c = copy.deepcopy(curr_c)
 
-        new_c[self.N*self.N+4+i] = 10000
+        new_c[self.N*self.N+4+i] = 10000  # Big M method
         new_b[4+i] = zero_or_one
 
-        return list(new_a), new_b, new_c
+        return new_b, new_c
