@@ -11,6 +11,7 @@ as a project for the course of Combinatorial Decision Making and Optimization (M
     2. [Problem Parameters](#problem_par)
     3. [Agent Parameters](#agent_par)
 5. [Details](#details)
+6. [Problems](#prob)
     
 ## Installation <a name="installation"></a>
 Tested on python3.6 and python3.8, a few changes in the code are required for it to work with python2.
@@ -74,3 +75,7 @@ one "default" key should also be provided.
 
 ## Details <a name="details"></a>
 More information can be found in the pdf report available in the repository. (WORK IN PROGRESS)
+
+## Problems <a name="prob"></a>
+- Missing anti-cycling rule in "simplex.py".
+- Big-M method used for branching in "mission_optimizer.py" may be not working at its best.
