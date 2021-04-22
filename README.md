@@ -81,4 +81,5 @@ This repo uses a home-made implementation of branch &amp; bound and revised simp
 these are the first that come to mind:
 - Missing anti-cycling rule in "simplex.py".
 - Big-M method used for branching in "mission_optimizer.py" may be not working at its best.
-Obviusly, one could use a python library, such as pulp, to write the constraints and solve the problem in a more efficient way.
+
+Obviously, one could use a python library, such as pulp, to write the constraints and solve the problem in a more efficient way.
