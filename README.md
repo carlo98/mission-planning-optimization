@@ -77,5 +77,8 @@ one "default" key should also be provided.
 More information can be found in the pdf report available in the repository. (WORK IN PROGRESS)
 
 ## Problems <a name="prob"></a>
+This repo uses a home-made implementation of branch &amp; bound and revised simplex algorithm, required for the course, but it is not without problem,
+these are the first that come to mind:
 - Missing anti-cycling rule in "simplex.py".
 - Big-M method used for branching in "mission_optimizer.py" may be not working at its best.
+Obviusly, one could use a python library, such as pulp, to write the constraints and solve the problem in a more efficient way.
