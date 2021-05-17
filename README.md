@@ -74,7 +74,7 @@ The file "agent_par.json" contains the parameters associated to the agent, such 
 one "default" key should also be provided.
 
 ## Details <a name="details"></a>
-More information can be found in the pdf report available in the repository. (WORK IN PROGRESS)
+More information can be found in the pdf report available in the repository.
 
 ## Problems <a name="prob"></a>
 This repo uses a home-made implementation of branch &amp; bound and revised simplex algorithm, required for the course, but it is not without problem,
